@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, SunMedium, CloudLightning, CheckCircle2, SlidersHorizontal, Info } from 'lucide-react';
+import { SunMedium, CloudLightning, CheckCircle2, SlidersHorizontal, Info } from 'lucide-react';
 
 export default function RecommendationsPanel({ result }) {
   if (!result) return null;

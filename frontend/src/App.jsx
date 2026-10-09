@@ -44,24 +44,12 @@ export default function App() {
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
 
-  // Initial setup
-  useEffect(() => {
-    async function init() {
-      const healthData = await checkBackendHealth();
-      setHealth(healthData);
-      if (healthData.status === 'offline') {
-        setIsDemoMode(true);
-      }
-
-      const presetsData = await fetchPresets();
-      setPresets(presetsData);
-
-      // Perform initial calculation
-      await performCalculation(DEFAULT_INPUTS, healthData.status === 'offline');
-      await refreshHistory();
+  const refreshHistory = async () => {
+    const hist = await fetchHistory();
+    if (hist && hist.length > 0) {
+      setHistory(hist);
     }
-    init();
-  }, []);
+  };
 
   const performCalculation = async (inputParams, forceDemo = isDemoMode) => {
     setIsLoading(true);
@@ -86,12 +74,24 @@ export default function App() {
     }
   };
 
-  const refreshHistory = async () => {
-    const hist = await fetchHistory();
-    if (hist && hist.length > 0) {
-      setHistory(hist);
+  // Initial setup
+  useEffect(() => {
+    async function init() {
+      const healthData = await checkBackendHealth();
+      setHealth(healthData);
+      if (healthData.status === 'offline') {
+        setIsDemoMode(true);
+      }
+
+      const presetsData = await fetchPresets();
+      setPresets(presetsData);
+
+      // Perform initial calculation
+      await performCalculation(DEFAULT_INPUTS, healthData.status === 'offline');
+      await refreshHistory();
     }
-  };
+    init();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();

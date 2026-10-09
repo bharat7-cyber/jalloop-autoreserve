@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, CloudRain, ShieldCheck, Database, Radio, Sparkles, HelpCircle, FileText } from 'lucide-react';
+import { Droplets, Database, Radio, Sparkles, FileText } from 'lucide-react';
 
 export default function Navbar({
   isDemoMode,

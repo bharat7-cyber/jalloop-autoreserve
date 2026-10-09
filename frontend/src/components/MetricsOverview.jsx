@@ -65,7 +65,7 @@ export default function MetricsOverview({ result }) {
         </div>
         <div>
           <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-300">
-            {safetyReserve_liters.toLocaleString()} <span className="text-xs font-normal text-slate-400">L</span>
+            {safety_reserve_liters.toLocaleString()} <span className="text-xs font-normal text-slate-400">L</span>
           </div>
           <div className="text-[11px] text-emerald-400/90 mt-1 font-mono">
             {days_of_autonomy_remaining} Days Autonomy

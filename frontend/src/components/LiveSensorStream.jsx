@@ -2,8 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Activity, Radio, Droplets, Thermometer, Wind, CloudRain, Cpu, RefreshCw } from 'lucide-react';
 import { fetchSensorTelemetry } from '../services/api';
 
+const INITIAL_TELEMETRY = {
+  sensor_id: "JL-BLDG-IOT-001 (Simulated)",
+  timestamp: new Date().toISOString(),
+  tank_level_liters: 68500.0,
+  tank_level_percentage: 68.5,
+  rain_rate_mm_hr: 14.5,
+  cumulative_rain_mm: 28.2,
+  inflow_lpm: 261.0,
+  outflow_lpm: 12.0,
+  valve_position_pct: 0.0,
+  ambient_temp_c: 32.4,
+  humidity_pct: 78.0,
+  heatwave_index: "MODERATE",
+  storm_alert_active: false,
+  status: "ONLINE (Hardware Emulation)"
+};
+
 export default function LiveSensorStream() {
-  const [telemetry, setTelemetry] = useState(null);
+  const [telemetry, setTelemetry] = useState(INITIAL_TELEMETRY);
   const [isLivePolling, setIsLivePolling] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -11,9 +28,12 @@ export default function LiveSensorStream() {
     setIsLoading(true);
     try {
       const data = await fetchSensorTelemetry();
-      setTelemetry(data);
-    } catch (_) {}
-    setIsLoading(false);
+      if (data) setTelemetry(data);
+    } catch (err) {
+      console.warn("Sensor telemetry fetch error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -22,8 +42,6 @@ export default function LiveSensorStream() {
     const interval = setInterval(loadTelemetry, 4000);
     return () => clearInterval(interval);
   }, [isLivePolling]);
-
-  if (!telemetry) return null;
 
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl">

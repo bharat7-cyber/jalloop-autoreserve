@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlayCircle, RotateCcw, Zap, ArrowRight } from 'lucide-react';
+import { RotateCcw, Zap, ArrowRight } from 'lucide-react';
 import { calculateWaterBalance } from '../utils/calculator';
 
 export default function ScenarioSimulator({ baseInputs, onApplyScenario }) {

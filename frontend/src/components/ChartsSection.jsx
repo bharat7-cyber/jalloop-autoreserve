@@ -9,8 +9,7 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
-  BarChart,
-  Area
+  BarChart
 } from 'recharts';
 import { BarChart3, TrendingUp, Layers } from 'lucide-react';
 

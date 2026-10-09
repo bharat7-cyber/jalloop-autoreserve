@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, Download, Play, RefreshCw, Database } from 'lucide-react';
+import { History, Download, Play, RefreshCw } from 'lucide-react';
 
 export default function CalculationHistory({ history, onLoadScenario, onRefresh }) {
   const [filterMode, setFilterMode] = useState('ALL');

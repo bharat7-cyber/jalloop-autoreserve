@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Database, Cloud, ShieldCheck, CheckCircle2, AlertCircle, Copy, Terminal } from 'lucide-react';
+import { X, Cloud, Terminal } from 'lucide-react';
 
 export default function CloudStatusModal({ isOpen, onClose, health }) {
   if (!isOpen) return null;

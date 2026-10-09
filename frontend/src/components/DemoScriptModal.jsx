@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Play, Clock, Sparkles, CheckCircle2, MessageSquare } from 'lucide-react';
+import { X, Clock, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function DemoScriptModal({ isOpen, onClose }) {
   if (!isOpen) return null;
