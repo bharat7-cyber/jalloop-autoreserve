@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  JalLoop AutoReserve - Intelligent Building Rainwater & Pre-Storm Buffer Management
+  AWS Serverless Application Model (SAM) Template
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        DYNAMODB_TABLE_NAME: !Ref JalLoopCalculationsTable
+        AWS_REGION_CUSTOM: !Ref AWS::Region
+
+Resources:
+  # DynamoDB Table for calculation audits & IoT events
+  JalLoopCalculationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: JalLoopCalculations
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: TimestampIndex
+          KeySchema:
+            - AttributeName: timestamp
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+
+  # AWS Lambda Function running FastAPI via Mangum
+  JalLoopApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.lambda_handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JalLoopCalculationsTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        RootEvent:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: GET
+
+Outputs:
+  JalLoopApiUrl:
+    Description: "HTTP API Gateway URL for JalLoop AutoReserve"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  DynamoDBTableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref JalLoopCalculationsTable
