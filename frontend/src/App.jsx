@@ -8,8 +8,7 @@ import ChartsSection from './components/ChartsSection';
 import ScenarioSimulator from './components/ScenarioSimulator';
 import LiveSensorStream from './components/LiveSensorStream';
 import CalculationHistory from './components/CalculationHistory';
-import CloudStatusModal from './components/CloudStatusModal';
-import DemoScriptModal from './components/DemoScriptModal';
+
 import WaterReuseSavings from './components/WaterReuseSavings';
 import OpenMeteoForecastPanel from './components/OpenMeteoForecastPanel';
 
@@ -42,9 +41,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Modals
-  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
-  const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
 
   const refreshHistory = async () => {
     const hist = await fetchHistory();
@@ -125,11 +121,10 @@ export default function App() {
       <Navbar
         isDemoMode={isDemoMode}
         setIsDemoMode={setIsDemoMode}
-        health={health}
+        
         presets={presets}
         onSelectPreset={handleSelectPreset}
-        onOpenCloudModal={() => setIsCloudModalOpen(true)}
-        onOpenScriptModal={() => setIsScriptModalOpen(true)}
+        
       />
 
       {/* Main Container */}
@@ -245,22 +240,13 @@ export default function App() {
               FastAPI + Mangum
             </span>
             <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-300">
-              AWS DynamoDB / SQLite
+              FastAPI + SQLite (Local)
             </span>
           </div>
         </div>
       </footer>
 
-      {/* Modals */}
-      <CloudStatusModal
-        isOpen={isCloudModalOpen}
-        onClose={() => setIsCloudModalOpen(false)}
-        health={health}
-      />
-      <DemoScriptModal
-        isOpen={isScriptModalOpen}
-        onClose={() => setIsScriptModalOpen(false)}
-      />
+      
     </div>
   );
 }

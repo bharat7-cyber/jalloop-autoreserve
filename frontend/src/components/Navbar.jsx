@@ -1,17 +1,13 @@
 import React from 'react';
-import { Droplets, Database, Radio, Sparkles, FileText } from 'lucide-react';
+import { Droplets, Radio, Sparkles } from 'lucide-react';
 
 export default function Navbar({
   isDemoMode,
   setIsDemoMode,
-  health,
   presets,
   onSelectPreset,
-  onOpenCloudModal,
-  onOpenScriptModal
 }) {
-  const isAwsActive = health?.aws_dynamodb_configured;
-  const isBackendUp = health?.status === 'healthy';
+  
 
   return (
     <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
@@ -87,39 +83,7 @@ export default function Navbar({
             </button>
           </div>
 
-          {/* AWS Cloud Status Pill */}
-          <button
-            onClick={onOpenCloudModal}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
-              isAwsActive
-                ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800 hover:bg-emerald-900/50'
-                : isBackendUp
-                ? 'bg-slate-800 text-amber-300 border-amber-700/60 hover:bg-slate-700'
-                : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-            }`}
-            title="Click to view honest AWS & storage connectivity status"
-          >
-            <Database className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">
-              {isAwsActive
-                ? 'AWS DynamoDB: Active'
-                : isBackendUp
-                ? 'Storage: Local SQLite'
-                : 'Offline Demo Mode'}
-            </span>
-            <span className="md:hidden">
-              {isAwsActive ? 'AWS' : 'SQLite'}
-            </span>
-          </button>
-
-          {/* Hackathon Pitch Script Button */}
-          <button
-            onClick={onOpenScriptModal}
-            className="flex items-center gap-1.5 bg-sky-900/40 text-sky-300 border border-sky-700/60 hover:bg-sky-800/50 px-2.5 py-1.5 rounded-lg text-xs font-medium transition"
-          >
-            <FileText className="h-3.5 w-3.5 text-sky-400" />
-            <span className="hidden sm:inline">Demo Script</span>
-          </button>
+        
         </div>
       </div>
     </header>

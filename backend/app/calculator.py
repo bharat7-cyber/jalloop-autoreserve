@@ -18,7 +18,7 @@ def calculate_water_balance(inputs: WaterSystemInput, storage_backend: str = "sq
     Principles:
     - 1 mm of rain over 1 m² = 1.000 Liter of harvestable runoff.
     - Runoff (L) = rainfall_mm * catchment_area_sqm * runoff_coefficient.
-    - Safety Reserve (L) = daily_water_demand_liters * reserve_days (guaranteed dry-period reserve).
+    - Safety Reserve (L) = daily_water_demand_liters * reserve_days (Modelled Reserve dry-period reserve).
     - Drawdown cannot breach Safety Reserve: max_safe_drawdown = max(0, current_level - safety_reserve).
     - Recommended Drawdown = min(needed_room, max_safe_drawdown).
     - Drawdown Destination: prioritized into planned pre-storm consumption -> secondary tank/cistern -> controlled dry-window discharge.

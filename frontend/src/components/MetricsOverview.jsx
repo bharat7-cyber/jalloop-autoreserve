@@ -58,7 +58,7 @@ export default function MetricsOverview({ result }) {
         </div>
       </div>
 
-      {/* 3. Guaranteed Safety Reserve */}
+      {/* 3. Modelled Reserve Safety Reserve */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
         <div className="flex items-center justify-between text-slate-400 mb-2">
           <span className="text-xs font-medium">Safety Reserve</span>
