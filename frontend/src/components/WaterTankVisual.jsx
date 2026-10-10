@@ -155,14 +155,14 @@ export default function WaterTankVisual({ result }) {
             <div>
               <div className="text-emerald-300 flex items-center gap-1 font-medium">
                 <ShieldAlert className="h-3 w-3 text-emerald-400" />
-                Protected Dry-Period Buffer
+                Modelled Dry-Period Reserve
               </div>
               <div className="font-mono font-bold text-emerald-200">
                 {safetyReserve.toLocaleString()} L ({result.inputs.reserve_days} Days)
               </div>
             </div>
             <span className="font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-700/60">
-              Guaranteed
+              Modelled Reserve
             </span>
           </div>
         </div>

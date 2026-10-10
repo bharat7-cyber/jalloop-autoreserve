@@ -77,7 +77,7 @@ export default function RecommendationsPanel({ result }) {
         <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-xl">
           <SlidersHorizontal className="h-4 w-4 text-cyan-400" />
           <div className="text-right">
-            <div className="text-[10px] uppercase font-mono text-slate-400">Smart Valve Command</div>
+            <div className="text-[10px] uppercase font-mono text-slate-400">Suggested Valve Action — Advisory</div>
             <div className="text-xs font-mono font-bold text-cyan-300">
               {valve_action} {valve_discharge_rate_lpm > 0 && `(${valve_discharge_rate_lpm} LPM)`}
             </div>

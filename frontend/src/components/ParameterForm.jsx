@@ -297,7 +297,7 @@ export default function ParameterForm({
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  <span>Compute AI Water Balance</span>
+                  <span>Compute Water Balance</span>
                 </>
               )}
             </button>
