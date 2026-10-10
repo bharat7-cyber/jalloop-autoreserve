@@ -84,7 +84,7 @@ export default function LiveSensorStream() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-slate-100">Live Building IoT Telemetry</h2>
+              <h2 className="text-sm font-semibold text-slate-100">Simulated Building IoT Telemetry</h2>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
                 {telemetry.sensor_id}
               </span>
