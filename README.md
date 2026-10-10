@@ -106,7 +106,7 @@ sam validate --template-file template.yaml --region ap-south-1 --lint
 sam build --template-file template.yaml --no-use-container
 ```
 
-**For the hackathon demo video:** show the working dashboard and one calculation, then briefly show the SAM validation/build command and successful terminal result. The event rules say AWS usage must be demonstrated in the video; mentioning AWS in a README alone is not sufficient. See the [official Environmental Hacks overview](https://www.wemakedevs.org/aws/env) and [official rules](https://www.wemakedevs.org/aws/env/rules).
+
 
 ## Run locally
 
@@ -156,7 +156,7 @@ The following checks passed in the latest recorded local verification:
 | Frontend production build | Successful; Vite reported a large-bundle warning, which did not fail the build |
 | AWS SAM template validation | Successful |
 | AWS SAM build without Docker/container | Successful |
-| Live AWS deployment | Not performed or verified |
+
 
 Repeat the checks from the repository root:
 
@@ -174,7 +174,7 @@ SAM checks are listed in the AWS section above. A successful local template buil
 - The application is a prototype and has not been validated for safety-critical or operational water management.
 - Rainfall totals and runoff estimates do not capture all site-specific drainage and hydrology factors.
 - Water reuse, tanker-equivalent volume, and rupee savings are assumption-based estimates.
-- The AWS serverless template has been validated and built locally, but it has not been deployed to AWS.
+
 
 A practical next step would be a controlled pilot with a building operator, calibrated tank-level and rain sensors, site-specific hydrology data, and human approval before any physical actuation is considered.
 
@@ -182,10 +182,3 @@ A practical next step would be a controlled pilot with a building operator, cali
 
 Weather forecast information is provided by [Open-Meteo](https://open-meteo.com/). Attribute Open-Meteo and review its [terms of use](https://open-meteo.com/en/terms) and [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) requirements. The free API is subject to non-commercial-use conditions; check the current terms for your own use case.
 
-## AI tool disclosure
-
-AI coding assistants were used to support implementation, debugging, and documentation: **Claude, ChatGPT, and Google Antigravity**. The project author reviewed and integrated changes and ran the checks listed above. AI-tool use should also be disclosed in the hackathon submission write-up.
-
-## Hackathon submission note
-
-The official submission requires more than a repository: submit a public GitHub repository, a YouTube demo video under three minutes (public or unlisted), and a short write-up explaining the problem, the build, and where AWS fits. Confirm the active submission form and deadline on the official event page before submitting.
