@@ -1,0 +1,6 @@
+{
+  "JalLoopApiFunction": {
+    "JALLOOP_STORAGE_BACKEND": "sqlite",
+    "SQLITE_DB_PATH": "/tmp/jalloop.db"
+  }
+}

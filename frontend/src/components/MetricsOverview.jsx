@@ -12,7 +12,8 @@ export default function MetricsOverview({ result }) {
     overflow_risk_percentage,
     post_rain_tank_level_liters,
     post_rain_fill_percentage,
-    days_of_autonomy_remaining,
+    target_reserve_days,
+    post_rain_autonomy_days,
     valve_discharge_rate_lpm,
   } = result;
 
@@ -68,7 +69,7 @@ export default function MetricsOverview({ result }) {
             {safety_reserve_liters.toLocaleString()} <span className="text-xs font-normal text-slate-400">L</span>
           </div>
           <div className="text-[11px] text-emerald-400/90 mt-1 font-mono">
-            {days_of_autonomy_remaining} Days Autonomy
+            Target Reserve: {target_reserve_days} Days
           </div>
         </div>
       </div>
@@ -105,6 +106,9 @@ export default function MetricsOverview({ result }) {
           </div>
           <div className="text-[11px] text-slate-400 mt-1 font-mono">
             {post_rain_tank_level_liters.toLocaleString()} L Final
+          </div>
+          <div className="text-[11px] text-cyan-300 mt-1 font-mono">
+            {post_rain_autonomy_days} Days of Supply
           </div>
         </div>
       </div>

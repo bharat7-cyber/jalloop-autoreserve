@@ -114,3 +114,18 @@ def test_zero_rainfall():
     assert res.captured_water_liters == 0.0
     assert res.overflow_liters == 0.0
     assert res.post_rain_tank_level_liters == 60000.0
+
+def test_current_water_level_cannot_exceed_tank_capacity():
+    with pytest.raises(
+        ValueError,
+        match="Current water level cannot exceed tank capacity"
+    ):
+        WaterSystemInput(
+            rainfall_mm=10.0,
+            catchment_area_sqm=1000.0,
+            runoff_coefficient=0.9,
+            tank_capacity_liters=100000.0,
+            current_water_level_liters=100001.0,
+            daily_water_demand_liters=10000.0,
+            reserve_days=3.0,
+        )

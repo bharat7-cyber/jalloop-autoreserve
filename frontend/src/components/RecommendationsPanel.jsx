@@ -22,7 +22,7 @@ export default function RecommendationsPanel({ result }) {
           title: 'STORM SURGE & CLOUDBURST PREPARATION',
           badgeBg: 'bg-blue-950/80 border-blue-600 text-sky-300',
           containerBg: 'border-blue-900/60 bg-blue-950/10',
-          desc: 'Executing calculated pre-storm drawdown to absorb peak runoff without overflowing municipal drains.',
+          desc: 'Recommended pre-storm drawdown to create storage capacity. Excess runoff may still overflow when it exceeds available capacity.',
         };
       case 'BALANCED_BUFFER':
       default:

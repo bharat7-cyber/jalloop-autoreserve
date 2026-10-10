@@ -11,7 +11,14 @@ try:
 except ImportError:
     BOTO3_AVAILABLE = False
 
-from .models import CalculationResult, WaterSystemInput, HourlyWaterForecast, SystemHealth
+from .models import (
+    CalculationResult,
+    WaterSystemInput,
+    HourlyWaterForecast,
+    SystemHealth,
+    DrawdownRouting,
+    WaterSavingsEstimate,
+)
 
 # Database configuration
 SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", os.path.join(os.path.dirname(__file__), "..", "jalloop.db"))
@@ -76,6 +83,18 @@ class StorageManager:
 
     def _try_init_dynamodb(self):
         """Attempts connection to AWS DynamoDB if credentials exist."""
+        storage_override = os.getenv(
+            "JALLOOP_STORAGE_BACKEND", ""
+        ).strip().lower()
+
+        if storage_override == "sqlite":
+            self.is_dynamodb_active = False
+            self.dynamo_table = None
+            return
+
+        if not BOTO3_AVAILABLE:
+            self.is_dynamodb_active = False
+            return
         if not BOTO3_AVAILABLE:
             self.is_dynamodb_active = False
             return
@@ -89,12 +108,10 @@ class StorageManager:
                 session = boto3.Session(region_name=self.aws_region)
                 dynamodb = session.resource("dynamodb")
                 table = dynamodb.Table(self.dynamodb_table_name)
-                # Quick lightweight check to verify table exists
                 table.load()
                 self.dynamo_table = table
                 self.is_dynamodb_active = True
             except Exception:
-                # AWS credentials invalid or table doesn't exist yet
                 self.is_dynamodb_active = False
                 self.dynamo_table = None
         else:
@@ -105,7 +122,7 @@ class StorageManager:
         Saves calculation result to active storage.
         Returns 'dynamodb' or 'sqlite'.
         """
-        # 1. Always save to local SQLite for zero-loss offline logging
+        # 1. Save to local SQLite
         try:
             with sqlite3.connect(self.sqlite_path) as conn:
                 cursor = conn.cursor()
@@ -141,7 +158,7 @@ class StorageManager:
                     result.overflow_risk_percentage,
                     result.post_rain_tank_level_liters,
                     result.post_rain_fill_percentage,
-                    result.days_of_autonomy_remaining,
+                    result.post_rain_autonomy_days,
                     result.mode,
                     result.alert_level,
                     result.valve_action,
@@ -158,7 +175,6 @@ class StorageManager:
         if self.is_dynamodb_active and self.dynamo_table:
             try:
                 from decimal import Decimal
-                # Convert floats to Decimals for DynamoDB
                 item = json.loads(json.dumps(result.model_dump()), parse_float=Decimal)
                 self.dynamo_table.put_item(Item=item)
                 return "dynamodb"
@@ -170,14 +186,12 @@ class StorageManager:
 
     def get_history(self, limit: int = 50) -> List[CalculationResult]:
         """Retrieves recent calculation history."""
-        # If DynamoDB is active, attempt scan/query
         if self.is_dynamodb_active and self.dynamo_table:
             try:
                 response = self.dynamo_table.scan(Limit=limit)
                 items = response.get("Items", [])
                 results: List[CalculationResult] = []
                 for item in items:
-                    # Convert Decimals back to float
                     item_json = json.loads(json.dumps(item, default=float))
                     results.append(CalculationResult(**item_json))
                 results.sort(key=lambda x: x.timestamp, reverse=True)
@@ -196,6 +210,26 @@ class StorageManager:
                 """, (limit,))
                 rows = cursor.fetchall()
                 for row in rows:
+                    daily_d = row["daily_water_demand_liters"] or 1.0
+                    reserve_d = row["reserve_days"] or 3.0
+                    curr_lvl = row["current_water_level_liters"] or 0.0
+                    post_lvl = row["post_rain_tank_level_liters"] or 0.0
+
+                    # Compute consistent autonomy metrics
+                    curr_autonomy = round(curr_lvl / daily_d, 1) if daily_d > 0 else 999.0
+                    post_autonomy = round(post_lvl / daily_d, 1) if daily_d > 0 else 999.0
+                    
+                    # Drawdown routing reconstruction
+                    rec_drawdown = row["recommended_drawdown_liters"] or 0.0
+                    planned_use = round(daily_d * (4.0 / 24.0), 2)
+                    d_cons = min(rec_drawdown, planned_use)
+                    d_sec = min(rec_drawdown - d_cons, 25000.0)
+                    d_disc = round(rec_drawdown - d_cons - d_sec, 2)
+                    
+                    overflow_vol = row["overflow_liters"] or 0.0
+                    reusable_vol = round((row["captured_water_liters"] or 0.0) + d_cons + d_sec, 2)
+                    tankers = round(reusable_vol / 10000.0, 1)
+
                     rec = CalculationResult(
                         id=row["id"],
                         timestamp=row["timestamp"],
@@ -204,22 +238,39 @@ class StorageManager:
                             catchment_area_sqm=row["catchment_area_sqm"],
                             runoff_coefficient=row["runoff_coefficient"],
                             tank_capacity_liters=row["tank_capacity_liters"],
-                            current_water_level_liters=row["current_water_level_liters"],
-                            daily_water_demand_liters=row["daily_water_demand_liters"],
-                            reserve_days=row["reserve_days"],
+                            current_water_level_liters=curr_lvl,
+                            daily_water_demand_liters=daily_d,
+                            reserve_days=reserve_d,
                             scenario_name=row["scenario_name"],
                         ),
                         harvestable_runoff_liters=row["harvestable_runoff_liters"],
                         safety_reserve_liters=row["safety_reserve_liters"],
                         available_storage_liters=row["available_storage_liters"],
-                        recommended_drawdown_liters=row["recommended_drawdown_liters"],
+                        recommended_drawdown_liters=rec_drawdown,
                         post_drawdown_level_liters=row["post_drawdown_level_liters"],
                         captured_water_liters=row["captured_water_liters"],
-                        overflow_liters=row["overflow_liters"],
+                        overflow_liters=overflow_vol,
                         overflow_risk_percentage=row["overflow_risk_percentage"],
-                        post_rain_tank_level_liters=row["post_rain_tank_level_liters"],
+                        post_rain_tank_level_liters=post_lvl,
                         post_rain_fill_percentage=row["post_rain_fill_percentage"],
-                        days_of_autonomy_remaining=row["days_of_autonomy_remaining"],
+                        target_reserve_days=reserve_d,
+                        current_autonomy_days=curr_autonomy,
+                        post_rain_autonomy_days=post_autonomy,
+                        days_of_autonomy_remaining=post_autonomy,
+                        drawdown_to_consumption_liters=d_cons,
+                        drawdown_to_secondary_tank_liters=d_sec,
+                        drawdown_to_controlled_discharge_liters=d_disc,
+                        drain_overload_risk_note="Scheduled during pre-storm dry window to prevent drain saturation.",
+                        unavoidable_overflow_liters=overflow_vol,
+                        overflow_explanation=f"Overflow of {overflow_vol:,.0f} L occurs when runoff exceeds total facility storage." if overflow_vol > 0 else "Zero overflow.",
+                        total_reusable_water_liters=reusable_vol,
+                        avoided_freshwater_tankers=tankers,
+                        estimated_cost_savings_inr=round(tankers * 1500.0, 0),
+                        non_potable_breakdown={
+                            "hvac_cooling_liters": round(post_lvl * 0.40, 2),
+                            "toilet_flushing_liters": round(post_lvl * 0.35, 2),
+                            "landscape_irrigation_liters": round(post_lvl * 0.25, 2),
+                        },
                         mode=row["mode"],
                         alert_level=row["alert_level"],
                         valve_action=row["valve_action"],

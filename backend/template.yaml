@@ -13,6 +13,7 @@ Globals:
       Variables:
         DYNAMODB_TABLE_NAME: !Ref JalLoopCalculationsTable
         AWS_REGION_CUSTOM: !Ref AWS::Region
+        SQLITE_DB_PATH: /tmp/jalloop.db
 
 Resources:
   # DynamoDB Table for calculation audits & IoT events

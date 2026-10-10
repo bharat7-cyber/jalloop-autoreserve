@@ -33,7 +33,7 @@ class WaterSystemInput(BaseModel):
     current_water_level_liters: float = Field(
         ...,
         ge=0.0,
-        description="Current water stored in tank in liters (L)"
+        description="Current water stored in primary tank in liters (L)"
     )
     daily_water_demand_liters: float = Field(
         ...,
@@ -45,7 +45,19 @@ class WaterSystemInput(BaseModel):
         default=3.0,
         ge=0.0,
         le=60.0,
-        description="Target critical buffer days to preserve for dry periods / heatwaves"
+        description="Target critical safety reserve days to preserve for dry periods / heatwaves"
+    )
+    secondary_tank_capacity_liters: float = Field(
+        default=25000.0,
+        ge=0.0,
+        le=50_000_000.0,
+        description="Available secondary storage / raw water cistern / percolation pit headroom in liters (L)"
+    )
+    planned_prestorm_consumption_liters: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=5_000_000.0,
+        description="Scheduled on-site non-potable demand prior to storm arrival (HVAC thermal pre-cooling, irrigation, cistern fill) in liters (L)"
     )
     scenario_name: Optional[str] = Field(
         default="Standard Building Run",
@@ -61,7 +73,13 @@ class WaterSystemInput(BaseModel):
     @field_validator("current_water_level_liters")
     @classmethod
     def validate_current_level_vs_capacity(cls, v: float, info) -> float:
-        # Note: if current level exceeds capacity (abnormal overfill), we allow calculation but cap it in logic
+        capacity = info.data.get("tank_capacity_liters")
+
+        if capacity is not None and v > capacity:
+            raise ValueError(
+            "Current water level cannot exceed tank capacity"
+        )
+
         return v
 
 
@@ -71,6 +89,63 @@ class HourlyWaterForecast(BaseModel):
     cumulative_runoff_liters: float
     projected_tank_level_liters: float
     overflow_liters: float
+
+
+class DrawdownRouting(BaseModel):
+    """
+    Physical routing destinations for pre-storm drawdown water.
+    Drawdown is never assumed to dump infinitely into overloaded drains.
+    """
+    drawdown_to_consumption_liters: float = Field(
+        ...,
+        description="Drawn-down volume allocated to scheduled pre-storm non-potable demand (HVAC, cistern fill)"
+    )
+    drawdown_to_secondary_tank_liters: float = Field(
+        ...,
+        description="Drawn-down volume transferred to secondary retention tank or dedicated groundwater recharge pit"
+    )
+    drawdown_to_controlled_discharge_liters: float = Field(
+        ...,
+        description="Remaining volume discharged at throttled rate strictly during the 4h pre-storm dry window"
+    )
+    drain_overload_risk_note: str = Field(
+        ...,
+        description="Operational note regarding municipal stormwater drain saturation"
+    )
+    unavoidable_overflow_liters: float = Field(
+        ...,
+        description="Volume of runoff that exceeds total facility storage (Primary headroom + Secondary capacity)"
+    )
+    overflow_explanation: str = Field(
+        ...,
+        description="Hydrological explanation of why overflow occurs or is zero"
+    )
+
+
+class WaterSavingsEstimate(BaseModel):
+    """
+    Water reuse, municipal tanker reduction, and demand allocation.
+    """
+    total_reusable_water_liters: float = Field(
+        ...,
+        description="Total net rainwater productively utilized: captured in primary tank + useful drawdown (no double counting)"
+    )
+    avoided_freshwater_tankers: float = Field(
+        ...,
+        description="Number of 10,000-liter municipal water tankers avoided"
+    )
+    estimated_cost_savings_inr: float = Field(
+        ...,
+        description="Estimated monetary savings in INR at benchmark ₹1,500 per 10kL tanker"
+    )
+    non_potable_breakdown: Dict[str, float] = Field(
+        ...,
+        description="Estimated non-potable demand allocation: HVAC cooling (40%), flushing (35%), irrigation (25%)"
+    )
+    assumptions: List[str] = Field(
+        ...,
+        description="Transparent mathematical and physical assumptions"
+    )
 
 
 class CalculationResult(BaseModel):
@@ -92,15 +167,15 @@ class CalculationResult(BaseModel):
     )
     available_storage_liters: float = Field(
         ...,
-        description="Pre-storm available headroom in tank: capacity - current_level"
+        description="Pre-storm available headroom in primary tank: capacity - current_level"
     )
     recommended_drawdown_liters: float = Field(
         ...,
-        description="Pre-storm controlled release volume to prevent urban overflow while guarding safety reserve"
+        description="Pre-storm release volume to prevent urban overflow while strictly guarding safety reserve"
     )
     post_drawdown_level_liters: float = Field(
         ...,
-        description="Tank level after recommended drawdown prior to storm arrival"
+        description="Primary tank level after recommended drawdown prior to storm arrival"
     )
     captured_water_liters: float = Field(
         ...,
@@ -122,12 +197,42 @@ class CalculationResult(BaseModel):
         ...,
         description="Tank fullness percentage after storm event (0-100%)"
     )
-    days_of_autonomy_remaining: float = Field(
+    
+    # Consistent autonomy figures derived from daily_water_demand_liters
+    target_reserve_days: float = Field(
+        ...,
+        description="Target dry-period safety buffer days (equals inputs.reserve_days)"
+    )
+    current_autonomy_days: float = Field(
+        ...,
+        description="Days of building autonomy supported by current water level prior to storm"
+    )
+    post_rain_autonomy_days: float = Field(
         ...,
         description="Days the building can operate autonomously on the resulting post-rain water level"
     )
+    days_of_autonomy_remaining: float = Field(
+        ...,
+        description="Alias for post_rain_autonomy_days for backward compatibility"
+    )
     
-    # Smart Advisory
+    # Drawdown Destination & Unavoidable Overflow Modeling
+    drawdown_to_consumption_liters: float = 0.0
+    drawdown_to_secondary_tank_liters: float = 0.0
+    drawdown_to_controlled_discharge_liters: float = 0.0
+    drain_overload_risk_note: str = ""
+    unavoidable_overflow_liters: float = 0.0
+    overflow_explanation: str = ""
+    drawdown_routing: Optional[DrawdownRouting] = None
+
+    # Water Reuse & Financial Savings
+    total_reusable_water_liters: float = 0.0
+    avoided_freshwater_tankers: float = 0.0
+    estimated_cost_savings_inr: float = 0.0
+    non_potable_breakdown: Optional[Dict[str, float]] = None
+    water_savings: Optional[WaterSavingsEstimate] = None
+
+    # Strategy Advisory
     mode: str = Field(
         ...,
         description="Operational strategy: 'HEATWAVE_DEFENSE', 'STORM_SURGE_PREP', 'BALANCED_BUFFER', or 'CONSERVATION_ALERT'"
@@ -159,7 +264,7 @@ class CalculationResult(BaseModel):
 
 class SensorTelemetry(BaseModel):
     """
-    Live or simulated building IoT telemetry stream.
+    Simulated building IoT telemetry stream (synthetic ADC modeling for demo).
     """
     sensor_id: str
     timestamp: str

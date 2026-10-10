@@ -25,23 +25,53 @@ export default function LiveSensorStream() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loadTelemetry = async () => {
-    setIsLoading(true);
+  try {
+    const data = await fetchSensorTelemetry();
+
+    if (data) {
+      setTelemetry(data);
+    }
+  } catch (err) {
+    console.warn("Sensor telemetry fetch error:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  useEffect(() => {
+  let cancelled = false;
+
+  const pollTelemetry = async () => {
     try {
       const data = await fetchSensorTelemetry();
-      if (data) setTelemetry(data);
+
+      if (!cancelled && data) {
+        setTelemetry(data);
+      }
     } catch (err) {
-      console.warn("Sensor telemetry fetch error:", err);
-    } finally {
-      setIsLoading(false);
+      if (!cancelled) {
+        console.warn("Sensor telemetry fetch error:", err);
+      }
     }
   };
 
-  useEffect(() => {
-    loadTelemetry();
-    if (!isLivePolling) return;
-    const interval = setInterval(loadTelemetry, 4000);
-    return () => clearInterval(interval);
-  }, [isLivePolling]);
+  void pollTelemetry();
+
+  if (!isLivePolling) {
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  const interval = window.setInterval(() => {
+    void pollTelemetry();
+  }, 4000);
+
+  return () => {
+    cancelled = true;
+    window.clearInterval(interval);
+  };
+}, [isLivePolling]);
 
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl">
@@ -84,7 +114,10 @@ export default function LiveSensorStream() {
           </button>
 
           <button
-            onClick={loadTelemetry}
+            onClick={() => {
+  setIsLoading(true);
+  void loadTelemetry();
+}}
             disabled={isLoading}
             className="p-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition"
             title="Poll Now"

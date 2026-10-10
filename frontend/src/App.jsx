@@ -10,6 +10,8 @@ import LiveSensorStream from './components/LiveSensorStream';
 import CalculationHistory from './components/CalculationHistory';
 import CloudStatusModal from './components/CloudStatusModal';
 import DemoScriptModal from './components/DemoScriptModal';
+import WaterReuseSavings from './components/WaterReuseSavings';
+import OpenMeteoForecastPanel from './components/OpenMeteoForecastPanel';
 
 import {
   checkBackendHealth,
@@ -171,14 +173,26 @@ export default function App() {
         {/* 2. Parameters Form & Water Tank Cross-Section */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           <div className="lg:col-span-5 flex flex-col">
-            <ParameterForm
-              inputs={inputs}
-              onChange={setInputs}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              error={error}
-            />
-          </div>
+  <ParameterForm
+    inputs={inputs}
+    onChange={setInputs}
+    onSubmit={handleSubmit}
+    isLoading={isLoading}
+    error={error}
+  />
+
+  <OpenMeteoForecastPanel
+    onApply={(rainfallMm) => {
+      const updatedInputs = {
+        ...inputs,
+        rainfall_mm: Number(rainfallMm),
+      };
+
+      setInputs(updatedInputs);
+      performCalculation(updatedInputs, isDemoMode);
+    }}
+  />
+</div>
           <div className="lg:col-span-7 flex flex-col">
             <WaterTankVisual result={result} />
           </div>
@@ -186,6 +200,9 @@ export default function App() {
 
         {/* 3. Smart Recommendations & Actuator Directives */}
         <RecommendationsPanel result={result} />
+
+        {/* 3.1. Water Reuse & Estimated Savings */}
+        <WaterReuseSavings result={result} />
 
         {/* 4. Charts & Live Stress Simulator */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">

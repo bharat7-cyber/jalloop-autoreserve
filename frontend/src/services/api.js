@@ -10,7 +10,7 @@ export async function checkBackendHealth() {
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error('Health check non-200');
     return await res.json();
-  } catch (err) {
+  } catch {
     return {
       status: 'offline',
       aws_dynamodb_configured: false,
@@ -24,7 +24,9 @@ export async function fetchPresets() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/presets`);
     if (res.ok) return await res.json();
-  } catch (_) {}
+  } catch {
+  // Intentionally use local fallback data if the backend is unavailable.
+}
   // Fallback default presets if backend not reachable
   return {
     bangalore_highrise: {
@@ -38,6 +40,8 @@ export async function fetchPresets() {
         current_water_level_liters: 115000.0,
         daily_water_demand_liters: 18000.0,
         reserve_days: 3.5,
+        secondary_tank_capacity_liters: 35000.0,
+        planned_prestorm_consumption_liters: 3000.0,
         scenario_name: "Bangalore High-Rise Monsoon Buffer"
       }
     },
@@ -52,6 +56,8 @@ export async function fetchPresets() {
         current_water_level_liters: 130000.0,
         daily_water_demand_liters: 35000.0,
         reserve_days: 4.0,
+        secondary_tank_capacity_liters: 80000.0,
+        planned_prestorm_consumption_liters: 6000.0,
         scenario_name: "Hyderabad Tech Park Heatwave Defense"
       }
     },
@@ -66,6 +72,8 @@ export async function fetchPresets() {
         current_water_level_liters: 210000.0,
         daily_water_demand_liters: 25000.0,
         reserve_days: 3.0,
+        secondary_tank_capacity_liters: 40000.0,
+        planned_prestorm_consumption_liters: 4500.0,
         scenario_name: "Mumbai Coastal Cloudburst Overload"
       }
     },
@@ -80,6 +88,8 @@ export async function fetchPresets() {
         current_water_level_liters: 160000.0,
         daily_water_demand_liters: 40000.0,
         reserve_days: 5.0,
+        secondary_tank_capacity_liters: 60000.0,
+        planned_prestorm_consumption_liters: 7000.0,
         scenario_name: "Delhi Hospital Critical Infrastructure"
       }
     },
@@ -94,6 +104,8 @@ export async function fetchPresets() {
         current_water_level_liters: 16000.0,
         daily_water_demand_liters: 3200.0,
         reserve_days: 3.0,
+        secondary_tank_capacity_liters: 12000.0,
+        planned_prestorm_consumption_liters: 600.0,
         scenario_name: "Eco-Villa Balanced Harvest"
       }
     }
@@ -111,7 +123,7 @@ export async function executeCalculation(inputData, forceDemoMode = false) {
       if (res.ok) {
         return await res.json();
       }
-    } catch (err) {
+    } catch {
       console.warn('Backend unavailable, falling back to client-side calculator:', err);
     }
   }
@@ -124,7 +136,9 @@ export async function fetchHistory() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/history?limit=25`);
     if (res.ok) return await res.json();
-  } catch (_) {}
+  } catch {
+  // Intentionally use local fallback data if the backend is unavailable.
+}
   return [];
 }
 
@@ -132,7 +146,9 @@ export async function fetchSensorTelemetry() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/sensors/current`);
     if (res.ok) return await res.json();
-  } catch (_) {}
+  } catch {
+  // Intentionally use local fallback data if the backend is unavailable.
+}
   
   // High-fidelity fallback client telemetry generator
   const now = new Date().toISOString();

@@ -36,6 +36,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "current_water_level_liters": 115000.0,
             "daily_water_demand_liters": 18000.0,
             "reserve_days": 3.5,
+            "secondary_tank_capacity_liters": 35000.0,
+            "planned_prestorm_consumption_liters": 3000.0,
             "scenario_name": "Bangalore High-Rise Monsoon Buffer"
         }
     },
@@ -50,6 +52,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "current_water_level_liters": 130000.0,
             "daily_water_demand_liters": 35000.0,
             "reserve_days": 4.0,
+            "secondary_tank_capacity_liters": 80000.0,
+            "planned_prestorm_consumption_liters": 6000.0,
             "scenario_name": "Hyderabad Tech Park Heatwave Defense"
         }
     },
@@ -64,6 +68,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "current_water_level_liters": 210000.0,
             "daily_water_demand_liters": 25000.0,
             "reserve_days": 3.0,
+            "secondary_tank_capacity_liters": 40000.0,
+            "planned_prestorm_consumption_liters": 4500.0,
             "scenario_name": "Mumbai Coastal Cloudburst Overload"
         }
     },
@@ -78,6 +84,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "current_water_level_liters": 160000.0,
             "daily_water_demand_liters": 40000.0,
             "reserve_days": 5.0,
+            "secondary_tank_capacity_liters": 60000.0,
+            "planned_prestorm_consumption_liters": 7000.0,
             "scenario_name": "Delhi Hospital Critical Infrastructure"
         }
     },
@@ -92,6 +100,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "current_water_level_liters": 16000.0,
             "daily_water_demand_liters": 3200.0,
             "reserve_days": 3.0,
+            "secondary_tank_capacity_liters": 12000.0,
+            "planned_prestorm_consumption_liters": 600.0,
             "scenario_name": "Eco-Villa Balanced Harvest"
         }
     }
