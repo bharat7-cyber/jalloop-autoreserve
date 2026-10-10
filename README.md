@@ -41,19 +41,19 @@ The unit relationship used is that **1 mm of rain over 1 m² equals 1 litre** be
 
 ## Example: Bangalore high-rise preset
 
-The included demonstration scenario uses these inputs: 65 mm rainfall, 2,400 m² catchment, runoff coefficient 0.90, 150,000 L tank capacity, 115,000 L current tank level, 18,000 L/day demand, and a 3.5-day reserve.
+The included demonstration scenario uses these inputs: 65 mm rainfall, 2,401 m² catchment, runoff coefficient 0.90, 150,000 L tank capacity, 115,000 L current tank level, 18,000 L/day demand, and a 3.5-day reserve.
 
 | Result | Model estimate |
 |---|---:|
-| Incoming harvestable runoff | 140,400 L |
+| Incoming harvestable runoff | 140,458.5 L |
 | Existing tank headroom | 35,000 L |
 | Reserve target | 63,000 L |
 | Suggested pre-storm drawdown | 52,000 L |
 | Suggested average rate over the model's 4-hour window | 216.7 L/min |
 | Rainwater captured after drawdown | 87,000 L |
-| Remaining estimated overflow | 53,400 L |
+| Remaining estimated overflow | 53,458.5 L |
 
-**Why the overflow matters:** after the maximum reserve-safe drawdown, the model estimates space for 87,000 L of the 140,400 L runoff. The remaining 53,400 L is still expected to overflow. JalLoop surfaces that constraint instead of claiming it can prevent all flooding.
+**Why the overflow matters:** After the maximum reserve-safe drawdown, the model estimates space for 87,000 L of the 140,458.5 L runoff. The remaining 53,458.5 L is still expected to overflow. JalLoop surfaces this constraint instead of claiming it can prevent all flooding.
 
 The dashboard also presents water reuse, tanker-equivalent volume, and cost-savings estimates. Those values use assumptions, including 10,000 L per tanker and a benchmark of ₹1,500 per tanker; they are not measured savings or guaranteed financial results.
 
@@ -181,4 +181,6 @@ A practical next step would be a controlled pilot with a building operator, cali
 ## Data attribution
 
 Weather forecast information is provided by [Open-Meteo](https://open-meteo.com/). Attribute Open-Meteo and review its [terms of use](https://open-meteo.com/en/terms) and [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) requirements. The free API is subject to non-commercial-use conditions; check the current terms for your own use case.
+
+
 
