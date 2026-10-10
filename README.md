@@ -1,239 +1,191 @@
-# 💧 JalLoop AutoReserve
+# JalLoop AutoReserve
 
-> **Intelligent Urban Water Management System Reconciling Cloudburst Flood Protection with Heatwave & Drought Reserves.**
+**Forecast-aware water storage planning for buildings facing both water shortage and heavy rainfall.**
 
-![JalLoop Banner](https://img.shields.io/badge/JalLoop-AutoReserve_v1.0-0ea5e9?style=for-the-badge&logo=droplet)
-![Build](https://img.shields.io/badge/Build-Passing-emerald?style=for-the-badge)
-![Tech Stack](https://img.shields.io/badge/Tech-React_19_+_FastAPI_+_AWS_Serverless-blue?style=for-the-badge)
-![Persistence](https://img.shields.io/badge/Database-AWS_DynamoDB_|_SQLite-purple?style=for-the-badge)
+JalLoop AutoReserve is a hackathon prototype that helps a building operator reason about one practical trade-off: *how much tank capacity should be freed before a storm without using up the water needed for the next dry spell?* It combines rainfall inputs, tank capacity and level, daily demand, and a configurable reserve target to estimate a reserve-safe pre-storm drawdown, expected rainwater capture, and remaining overflow.
 
----
+> **Prototype status:** JalLoop provides decision support, not autonomous water control. Sensor readings are simulated. No physical sensors, pumps, valves, or other actuators are connected. Water-balance and savings figures are estimates, not measured outcomes.
 
-## 📌 Executive Summary
+## The problem
 
-Every growing metropolis faces an urban water dilemma:
-1. **Heatwaves & Dry Spells:** Buildings experience severe shortages and pay exorbitant sums for municipal water tankers.
-2. **Cloudbursts & Monsoons:** Rainwater harvesting tanks are left full prior to storms. When torrential rains arrive, clean rainwater violently overflows onto street drains, overwhelming municipal stormwater networks and triggering localized urban flooding.
+Buildings can face two related water risks:
 
-**The Dilemma:**
-If a facility manager drains their tank blindly before a storm that ends up failing or underperforming, the building suffers an artificial drought. If they hold all water, the incoming storm surge overflows and causes flood damage.
+- **Dry spells and heatwaves:** using stored water to create storm capacity can leave a building short of water later.
+- **Intense rainfall:** a nearly full tank may have too little headroom to retain incoming rain, causing overflow and sending water toward already stressed drains.
 
-**The Solution:**
-**JalLoop AutoReserve** is an intelligent, dual-objective water-balancing system that calculates the mathematically optimal **Pre-Storm Drawdown** while **strictly guarding a multi-day dry-period safety reserve**.
+A useful decision should consider both risks at once, rather than simply draining the tank whenever rain is forecast or keeping it full at all times.
 
----
+## What JalLoop does
 
-## 🏗️ System Architecture
+1. **Builds a water-balance estimate.** Use a saved building scenario or enter rainfall, catchment area, runoff coefficient, tank capacity and current level, daily demand, and reserve days.
+2. **Uses forecast data or manual input.** Search for a city and load Open-Meteo forecast information, or enter rainfall manually when a forecast is unavailable.
+3. **Protects a configured reserve within the model.** The suggested drawdown cannot exceed the calculated difference between the current tank level and the reserve target.
+4. **Shows the consequences.** Review estimated runoff, recommended drawdown, captured rain, overflow, projected tank level, remaining autonomy, and suggested water destinations.
+5. **Keeps a local calculation history.** The FastAPI backend stores calculations in SQLite. If the backend is unavailable, the frontend has a local calculation fallback for demonstration.
+6. **Explains the recommendation.** Rule-based modes distinguish dry-period defence, storm preparation, and balanced storage. Labels that resemble valve actions are displayed as recommendations only; they do not operate equipment.
+
+## How the calculation works
+
+All volumes are in litres (L).
+
+- **Estimated runoff:** `rainfall_mm × catchment_area_m² × runoff_coefficient`
+- **Reserve target:** `daily_water_demand_liters × reserve_days`
+- **Existing headroom:** `max(0, tank_capacity_liters − current_water_level_liters)`
+- **Headroom needed for the estimated runoff:** `max(0, estimated_runoff − existing_headroom)`
+- **Maximum reserve-safe drawdown:** `max(0, current_water_level_liters − reserve_target)`
+- **Suggested drawdown:** the smaller of the headroom needed and the maximum reserve-safe drawdown
+- **Captured rain:** the smaller of estimated runoff and the available tank space after the suggested drawdown
+- **Estimated overflow:** `max(0, estimated_runoff − space_available_after_drawdown)`
+
+The unit relationship used is that **1 mm of rain over 1 m² equals 1 litre** before applying the runoff coefficient. The model assumes the entered or forecast rainfall is representative and that the tank is not otherwise filled or drawn during the calculation. It does not simulate rainfall intensity, first-flush losses, evaporation, site drainage, pump limits, or all real-world hydrology. A modelled reserve is not a guarantee of real-world water availability.
+
+## Example: Bangalore high-rise preset
+
+The included demonstration scenario uses these inputs: 65 mm rainfall, 2,400 m² catchment, runoff coefficient 0.90, 150,000 L tank capacity, 115,000 L current tank level, 18,000 L/day demand, and a 3.5-day reserve.
+
+| Result | Model estimate |
+|---|---:|
+| Incoming harvestable runoff | 140,400 L |
+| Existing tank headroom | 35,000 L |
+| Reserve target | 63,000 L |
+| Suggested pre-storm drawdown | 52,000 L |
+| Suggested average rate over the model's 4-hour window | 216.7 L/min |
+| Rainwater captured after drawdown | 87,000 L |
+| Remaining estimated overflow | 53,400 L |
+
+**Why the overflow matters:** after the maximum reserve-safe drawdown, the model estimates space for 87,000 L of the 140,400 L runoff. The remaining 53,400 L is still expected to overflow. JalLoop surfaces that constraint instead of claiming it can prevent all flooding.
+
+The dashboard also presents water reuse, tanker-equivalent volume, and cost-savings estimates. Those values use assumptions, including 10,000 L per tanker and a benchmark of ₹1,500 per tanker; they are not measured savings or guaranteed financial results.
+
+## Decision modes
+
+The backend uses a deterministic, rules-based decision engine. The order of checks matters: the dry-period condition takes priority.
+
+| Mode | Trigger in the current implementation | Example advisory label |
+|---|---|---|
+| `HEATWAVE_DEFENSE` | Forecast rainfall is below 10 mm, or current tank level is below the reserve target | `KEEP_CLOSED` |
+| `STORM_SURGE_PREP` | Rainfall is at least 40 mm, or estimated overflow is positive, or a drawdown is recommended | `CONTROLLED_DISCHARGE`, `EMERGENCY_BYPASS`, or `MAX_HARVEST_OPEN`, depending on the calculated scenario |
+| `BALANCED_BUFFER` | Neither earlier condition applies | `KEEP_CLOSED` |
+
+These labels are advisory outputs in the UI/API only. The prototype does not issue commands to real valves, pumps, or building-management equipment. A facility operator would need to assess site conditions, permissions, water quality, and equipment limits before acting on any recommendation.
+
+## Technology and architecture
+
+- **Frontend:** React, Vite, JavaScript, Tailwind CSS, and Recharts.
+- **Backend:** Python, FastAPI, and Uvicorn.
+- **Local persistence:** SQLite calculation history.
+- **Weather:** Open-Meteo forecast API; city search and manual rainfall fallback.
+- **AWS tooling:** AWS Serverless Application Model (SAM) CLI and a SAM template for a possible serverless deployment path.
 
 ```mermaid
-flowchart TD
-    subgraph UI["Frontend (React 19 + Vite + Tailwind CSS)"]
-        UI_Dash["Dashboard & Visual Tank Cross-Section"]
-        UI_Form["Hydrological Parameters Form"]
-        UI_Charts["24h Storm Hydrograph & Comparative Analytics"]
-        UI_Sim["Live 'What-If' Stress Simulator"]
-        UI_IoT["Simulated IoT Sensor Stream (Level, Rain, Valve)"]
-        UI_Engine["Client Offline Demo Engine (Fallback)"]
-    end
-
-    subgraph CLOUD["Backend (Python 3.11 FastAPI / AWS Lambda)"]
-        API_GW["AWS HTTP API Gateway / Local Uvicorn"]
-        Mangum["Mangum ASGI Serverless Adapter"]
-        CoreAPI["FastAPI Computational Core"]
-        CalcEngine["Hydrological Balance & Strategy Engine"]
-        SensorsSim["ADC Telemetry Simulator"]
-    end
-
-    subgraph STORAGE["Persistence Layer (Dual-Mode)"]
-        Dynamo["AWS DynamoDB (JalLoopCalculations Table)"]
-        SQLite["Local SQLite Database (jalloop.db)"]
-    end
-
-    subgraph IOT["Physical / Building Layer"]
-        Actuators["Smart Motorized Modulating Valve"]
-        Pumps["Stormwater Retention & Bypass Pumps"]
-        Recharge["District Groundwater Recharge Wells"]
-    end
-
-    UI_Dash <--> API_GW
-    UI_Form --> API_GW
-    API_GW --> Mangum --> CoreAPI
-    CoreAPI --> CalcEngine
-    CoreAPI --> SensorsSim
-    CalcEngine --> Dynamo
-    CalcEngine --> SQLite
-    CalcEngine -.-> Actuators
-    Actuators --> Recharge
-    CalcEngine -.-> Pumps
-    UI_Dash -.-> UI_Engine
+flowchart LR
+    Operator[Building operator] --> UI[React dashboard]
+    Weather[Open-Meteo forecast or manual rainfall] --> UI
+    UI --> API[FastAPI backend :8001]
+    API --> Engine[Water-balance and reserve rules]
+    Engine --> DB[(Local SQLite history)]
+    Engine --> UI
 ```
 
----
+**Current running architecture:** React + FastAPI + local SQLite. The AWS template is a separate deployment path, not a live connection from the current dashboard.
 
-## 🧮 Mathematical Formulas & Principles
+## AWS use and verification
 
-### 1. Harvestable Runoff Volume
-$$V_{\text{runoff}} = \text{Rainfall (mm)} \times \text{Catchment Area (m²)} \times C$$
+JalLoop uses the **AWS SAM CLI locally** for the hackathon's AWS open-source-tool path. The repository includes `backend/template.yaml`, which describes a target serverless architecture using:
 
-*Unit Proof:*
-$$1\text{ mm} = 0.001\text{ m}$$
-$$1\text{ mm} \times 1\text{ m}^2 = 0.001\text{ m}^3 = 1.000\text{ Liter}$$
-Therefore, **$1\text{ mm}$ of rain over $1\text{ m}^2$ yields exactly $1\text{ Liter}$ of water**.
+- AWS Lambda to run the FastAPI application through Mangum;
+- Amazon API Gateway HTTP API as the API entry point; and
+- Amazon DynamoDB for calculation records.
 
-### 2. Guaranteed Dry-Period Safety Reserve
-$$V_{\text{reserve}} = \text{Daily Water Demand (L/day)} \times \text{Target Reserve Days}$$
+**Verified locally:** SAM template validation and `sam build` completed successfully. **Not completed:** deployment to an AWS account and end-to-end testing of the deployed Lambda, API Gateway, and DynamoDB stack. The currently running application uses SQLite; do not interpret the template as proof of a live AWS deployment.
 
-### 3. Available Storage Headroom
-$$V_{\text{available}} = \max(0, \text{Tank Capacity} - \text{Current Water Level})$$
+To repeat the local template checks (from the `backend` folder, with AWS SAM CLI installed):
 
-### 4. Storage Room Needed to Absorb Storm
-$$V_{\text{needed}} = \max(0, V_{\text{runoff}} - V_{\text{available}})$$
-
-### 5. Maximum Permissible Drawdown
-AutoReserve strictly enforces that drawdown **never** breaches the safety reserve:
-$$V_{\text{max\_drawdown}} = \max(0, \text{Current Water Level} - V_{\text{reserve}})$$
-
-### 6. Recommended Pre-Storm Drawdown
-$$V_{\text{drawdown}} = \min(V_{\text{needed}}, V_{\text{max\_drawdown}})$$
-
-### 7. Post-Rain Water Balance
-$$V_{\text{post\_drawdown}} = \text{Current Water Level} - V_{\text{drawdown}}$$
-$$V_{\text{captured}} = \min(V_{\text{runoff}}, \text{Capacity} - V_{\text{post\_drawdown}})$$
-$$V_{\text{overflow}} = \max(0, V_{\text{runoff}} - (\text{Capacity} - V_{\text{post\_drawdown}}))$$
-$$V_{\text{post\_rain}} = V_{\text{post\_drawdown}} + V_{\text{captured}}$$
-
----
-
-## 🧠 Decision Engine Modes
-
-| Operating Mode | Trigger Condition | Automated Actuator Directive |
-| :--- | :--- | :--- |
-| **HEATWAVE_DEFENSE** | Rain $< 10\text{ mm}$ or Current Level $< \text{Reserve}$ | **KEEP_CLOSED** (0 LPM). Zero release. Ration non-potable use. Activate graywater loop. |
-| **STORM_SURGE_PREP** | Rain $\ge 40\text{ mm}$ or Runoff $>$ Headroom | **CONTROLLED_DISCHARGE** at calculated LPM to recharge pits over 4 hours before storm onset. |
-| **BALANCED_BUFFER** | Moderate rain fitting existing headroom | **KEEP_CLOSED**. Harvest 100% naturally with zero spillage. |
-| **EMERGENCY_BYPASS** | Runoff exceeds total headroom after max safe drawdown | **EMERGENCY_BYPASS**. Engage high-capacity stormwater pumps to prevent basement flood. |
-
----
-
-## 🚀 Quickstart & Local Run
-
-### Prerequisites
-- **Node.js** (v18+)
-- **Python** (v3.10+)
-
-### Option 1: One-Click Run
-Run the appropriate script from the repository root:
-
-- **Windows (PowerShell):**
-  ```powershell
-  .\run_local.ps1
-  ```
-- **Windows (Command Prompt):**
-  ```cmd
-  run_local.bat
-  ```
-- **Linux / macOS:**
-  ```bash
-  chmod +x run_local.sh
-  ./run_local.sh
-  ```
-
-### Option 2: Manual Terminal Execution
-
-#### 1. Backend Setup:
 ```bash
-cd backend
-python -m pip install -r requirements.txt
-python -m pytest tests -v     # Verify all unit & API tests pass
-python -m uvicorn app.main:app --port 8000 --reload
+sam validate --template-file template.yaml --region ap-south-1 --lint
+sam build --template-file template.yaml --no-use-container
 ```
-API Documentation will be live at: `http://localhost:8000/docs`
 
-#### 2. Frontend Setup:
-In a separate terminal:
-```bash
+**For the hackathon demo video:** show the working dashboard and one calculation, then briefly show the SAM validation/build command and successful terminal result. The event rules say AWS usage must be demonstrated in the video; mentioning AWS in a README alone is not sufficient. See the [official Environmental Hacks overview](https://www.wemakedevs.org/aws/env) and [official rules](https://www.wemakedevs.org/aws/env/rules).
+
+## Run locally
+
+**Prerequisites:** Python 3.11 or compatible, Node.js, npm, and Git. Use the explicit commands below to run the backend on **port 8001**.
+
+### 1. Start the backend
+
+From the repository root:
+
+```powershell
+python -m pip install -r backend/requirements.txt
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8001 --reload
+```
+
+API documentation: <http://127.0.0.1:8001/docs>
+
+### 2. Point the frontend to port 8001
+
+Open a second terminal at the repository root and create `frontend/.env.local`:
+
+```powershell
+Set-Content -Path frontend/.env.local -Value "VITE_API_BASE_URL=http://127.0.0.1:8001"
+```
+
+Then run the frontend:
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
-Dashboard will be live at: `http://localhost:5173`
 
----
+Open <http://localhost:5173>. Restart the Vite dev server after changing `.env.local`. The `.env.local` file is for local configuration and should not be committed. The convenience runner scripts in the repository may use port 8000 by default; use the explicit commands above when running on port 8001.
 
-## ☁️ Real AWS Cloud Integration & Deployment
+### Weather fallback
 
-JalLoop AutoReserve is built from day one for production AWS serverless architecture:
+Open-Meteo access can fail because of network connectivity, rate limits, or service errors. When that happens, use the dashboard's manual rainfall input. Forecast values are third-party weather data, not official IMD observations or warnings.
 
-### 1. Dual-Mode Storage Architecture
-- **Production AWS Mode:** If AWS credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) are present, the backend automatically connects to **AWS DynamoDB** table `JalLoopCalculations` using `boto3`.
-- **Local Fallback Mode:** If unconfigured, the app transparently stores all calculations in local SQLite database `jalloop.db`.
-- **Client Demo Mode:** If the backend is offline, the React frontend executes an in-browser mirror of the calculation engine.
+## Tests and build checks
 
-### 2. AWS Serverless Deployment (AWS SAM)
-The repository includes an AWS SAM template (`backend/template.yaml`) provisioning:
-- **AWS DynamoDB Table:** `JalLoopCalculations` with Pay-Per-Request billing and encryption.
-- **AWS Lambda Function:** Python 3.11 running FastAPI via Mangum.
-- **AWS HTTP API Gateway:** Direct REST/HTTP routing to the Lambda function.
+The following checks passed in the latest recorded local verification:
 
-To deploy to your AWS account:
-```bash
-cd backend
-# 1. Build serverless artifacts
-sam build
+| Check | Result |
+|---|---|
+| Backend test suite | 12 tests passed |
+| Frontend lint | 0 warnings and 0 errors |
+| Frontend production build | Successful; Vite reported a large-bundle warning, which did not fail the build |
+| AWS SAM template validation | Successful |
+| AWS SAM build without Docker/container | Successful |
+| Live AWS deployment | Not performed or verified |
 
-# 2. Deploy to AWS
-sam deploy --guided --stack-name jalloop-autoreserve-stack --region us-east-1
+Repeat the checks from the repository root:
+
+```powershell
+python -m pytest backend/tests -v
+npm run lint --prefix frontend
+npm run build --prefix frontend
 ```
 
-Or run the automated deployment script:
-- PowerShell: `.\backend\deploy_aws.ps1`
-- Bash: `./backend/deploy_aws.sh`
+SAM checks are listed in the AWS section above. A successful local template build is not the same as a deployed-service integration test.
 
----
+## Limitations and next steps
 
-## 🧪 Verification & Test Suite
+- No live sensors or physical control hardware are connected; telemetry is simulated.
+- The application is a prototype and has not been validated for safety-critical or operational water management.
+- Rainfall totals and runoff estimates do not capture all site-specific drainage and hydrology factors.
+- Water reuse, tanker-equivalent volume, and rupee savings are assumption-based estimates.
+- The AWS serverless template has been validated and built locally, but it has not been deployed to AWS.
 
-The project includes unit and integration tests covering runoff math, edge cases, safety reserve boundaries, and API routes:
+A practical next step would be a controlled pilot with a building operator, calibrated tank-level and rain sensors, site-specific hydrology data, and human approval before any physical actuation is considered.
 
-```bash
-cd backend
-python -m pytest tests -v
-```
+## Data attribution
 
-**Results:**
-- `test_accurate_runoff_formula` ✅ PASSED
-- `test_pre_storm_drawdown_calculation` ✅ PASSED
-- `test_safety_reserve_never_breached` ✅ PASSED
-- `test_heatwave_drought_mode` ✅ PASSED
-- `test_zero_rainfall` ✅ PASSED
-- `test_root_endpoint` ✅ PASSED
-- `test_health_endpoint` ✅ PASSED
-- `test_presets_endpoint` ✅ PASSED
-- `test_calculate_endpoint` ✅ PASSED
-- `test_history_endpoint` ✅ PASSED
-- `test_sensors_endpoint` ✅ PASSED
+Weather forecast information is provided by [Open-Meteo](https://open-meteo.com/). Attribute Open-Meteo and review its [terms of use](https://open-meteo.com/en/terms) and [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) requirements. The free API is subject to non-commercial-use conditions; check the current terms for your own use case.
 
-Frontend production build verification:
-```bash
-cd frontend
-npm run build
-```
-Output: `✓ built in 1.54s` without any errors.
+## AI tool disclosure
 
----
+AI coding assistants were used to support implementation, debugging, and documentation: **Claude, ChatGPT, and Google Antigravity**. The project author reviewed and integrated changes and ran the checks listed above. AI-tool use should also be disclosed in the hackathon submission write-up.
 
-## 📊 Live Built-in Features
+## Hackathon submission note
 
-1. **Dynamic Visual Tank Cross-Section:** Animated SVG showing real-time water levels, pre-storm drawdown zone, safety reserve boundary line, and overflow spill indicator.
-2. **Tabbed Parameters Form:** Configure storm depth, roof area, surface runoff coefficient, tank capacity, daily demand, and reserve days with instant presets.
-3. **Smart Decision Engine:** Real-time strategy recommendation with automated actuator discharge rates (LPM).
-4. **Interactive 24h Hydrograph:** Visualizes hourly rainfall distribution against tank level curves.
-5. **JalLoop vs Conventional Comparison:** Shows how much flood water is prevented from spillage.
-6. **Live What-If Stress Simulator:** Real-time slider testing drought shifts (-90%) and cloudbursts (+150%).
-7. **Simulated IoT Sensor Network:** Live ultrasonic level transmitter, tipping rain gauge, flow turbine, and ambient weather telemetry.
-8. **Audit Trail & CSV Export:** Complete calculation history with one-click scenario re-loading and CSV download.
-
----
-
-## ⚖️ License
-MIT License. Built for the Hackathon.
+The official submission requires more than a repository: submit a public GitHub repository, a YouTube demo video under three minutes (public or unlisted), and a short write-up explaining the problem, the build, and where AWS fits. Confirm the active submission form and deadline on the official event page before submitting.
