@@ -35,7 +35,7 @@ export default function App() {
   const [inputs, setInputs] = useState(DEFAULT_INPUTS);
   const [result, setResult] = useState(() => calculateWaterBalance(DEFAULT_INPUTS, 'local_demo'));
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [health, setHealth] = useState(null);
+  const [, setHealth] = useState(null);
   const [presets, setPresets] = useState({});
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
